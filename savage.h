@@ -7,6 +7,7 @@
 #define EATING 2
 #define WALKING 3
 #define WANDER 4
+#define WAITINGNEIGHBOR 5
 
 struct Pot {
     int meals;
@@ -25,4 +26,4 @@ struct Savage {
 struct Pot * pot ();
 struct Savage * cooker ();
 struct Savage * newSavage (int,int,int);
-void start (int,int,int,int,int);
+void start (int,int,int,int,int,int);

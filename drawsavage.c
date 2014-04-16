@@ -1,10 +1,10 @@
-/*Grupo: Bruno Vargas    ra 116330
- *       Jonatan Valongo ra 117424
- *       Rafael Erthal   ra 121286 
- * Animacao referente ao Projeto 01 da materia MC504 com a professora Islene 
+/*Grupo: Stéphane Ammar ra149071
+ * 	 Andréia Yukie Uratsuka 096952 
+ * Animacao referente ao Projeto 02 da materia MC504 com a professora Islene
  * referente ao problema : The Dining Savages
- * Data 27/09/2013 
+ * Data 22/04/2014
 */
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -106,8 +106,11 @@ void drawSavage(char campo[MAXLIN][MAXCOL], int lin, int col, int status)
 		} else{
 			if(status == HUNGRY || status == WALKING)
 					campo[lin + 1][col + 1] = '#';
-			else //o cara esta fazendo nada
-						campo[lin + 1][col + 1] = '%';
+			else {
+				if(status == WAITINGNEIGHBOR)
+						campo[lin + 1][col + 1] = '!';
+				else//o cara esta fazendo nada
+						campo[lin + 1][col + 1] = '%';}
 		}
 } 
 
@@ -132,7 +135,7 @@ int main()
 	while (numMeals < 2 || numMeals > 9);
 	savages = (struct Savage**)malloc(numSavages * sizeof(struct Savage*));
 	srand(time(NULL));
-	start(15, 24, numMeals, 15, 32);
+	start(15, 24, numMeals, 15, 32, numSavages);
 	for (i = 0; i < numSavages; i++)
 		savages[i] = newSavage(4, 5 + 4 * i,i);
 	while (1)
@@ -150,9 +153,9 @@ int main()
 		printField(campo);
 		printf  (" ,             ,            ,\n");
 		printf  (" 00            00           00           00\n");
-		printf  ("  #             @            %% ");printf("	 	  ^\n");
-		printf("\n Selvagem     | Selvagem  | Selvagem   |  Cozinheiro\n");
-		printf(" com fome     |   comendo | fazendo nada\n");
+		printf  ("  #             @            %%              !");printf("	 	  ^\n");
+		printf("\n Selvagem     | Selvagem  | Selvagem     | Selvagem   |  Cozinheiro\n");
+		printf(" com fome     |   comendo | fazendo nada | esperando vizinho   |\n");
 		printf ("Precione ctrl+c para encerrar o programa.\n");
 		usleep(100000);
 	}

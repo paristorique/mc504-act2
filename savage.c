@@ -1,11 +1,10 @@
-/*Grupo: Bruno Vargas    ra 116330
- *       Jonatan Valongo ra 117424
- *       Rafael Erthal   ra 121286
- * Animacao referente ao Projeto 01 da materia MC504 com a professora Islene
+/*Grupo: Stéphane Ammar ra149071
+ * 	 Andréia Yukie Uratsuka 096952 
+ * Animacao referente ao Projeto 02 da materia MC504 com a professora Islene
  * referente ao problema : The Dining Savages
- * Data 27/09/2013
+ * Data 22/04/2014
 */
-
+#include <semaphore.h>
 #include "savage.h"
 
 struct Savage * _cooker;
@@ -14,9 +13,15 @@ struct Pot * _pot;
 void * cookerLife (void *);
 void * savageLife (void *);
 
-void walk (struct Savage *, int, int);
+void walk (struct Savage *, int, int,int);
 void eat  (struct Savage *);
 void wander  (struct Savage *);
+
+int numTotSavages;
+
+//sem_t *semaphores;
+
+int *waitNeigh;
 
 pthread_mutex_t emptyPot = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t fullPot = PTHREAD_MUTEX_INITIALIZER;
@@ -30,9 +35,12 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
  * potCapacity {int} maximum meals in the pot
  * cookerX {int} X coordinate of the cooker
  * cookerY {int} Y coordinate of the cooker
+ * numSavages {int} : number of savages.
  */
-void start (int potX, int potY, int potCapacity, int cookerX, int cookerY) {
+void start (int potX, int potY, int potCapacity, int cookerX, int cookerY, int numSavages) {
     pthread_t thr;
+	int i;
+	numTotSavages = numSavages;
 
     _cooker         = (struct Savage *) malloc(sizeof(struct Savage));
     _cooker->status = SLEEPING;
@@ -44,6 +52,13 @@ void start (int potX, int potY, int potCapacity, int cookerX, int cookerY) {
     _pot->meals     = potCapacity;
     _pot->x         = potX;
     _pot->y         = potY;
+
+	//semaphores = malloc((numSavages)*sizeof(sem_t));
+	waitNeigh=malloc((numSavages)*sizeof(int));
+	for(i=0;i<numSavages;i++){
+	//sem_init(&semaphores[i], 0, 1);
+	waitNeigh[i]=1;
+	}
 
     pthread_mutex_lock(&emptyPot);
     pthread_create(&thr, NULL, cookerLife, (void *) _cooker);
@@ -96,10 +111,10 @@ void * cookerLife (void * v) {
     while (1) {
         cooker->status = SLEEPING;
         pthread_mutex_lock(&emptyPot);
-        walk(cooker, _pot->x, _pot->y);
+        walk(cooker, _pot->x, _pot->y,0);
         _pot->meals = _pot->capacity;
         pthread_mutex_unlock(&fullPot);
-        walk(cooker, originalX, originalY);
+        walk(cooker, originalX, originalY,0);
     }
 }
 
@@ -120,10 +135,14 @@ void * savageLife (void * v) {
             pthread_mutex_unlock(&emptyPot);
             pthread_mutex_lock(&fullPot);
         }
-        walk(savage, _pot->x, _pot->y);
+	//sem_wait(&semaphores[savage->position]);
+	waitNeigh[savage->position]=0;
+        walk(savage, _pot->x, _pot->y,0);
         _pot->meals--;
 		pthread_mutex_unlock(&mutex);
-        walk(savage, originalX, originalY);     
+        walk(savage, originalX, originalY,1); 
+	//sem_post(&semaphores[savage->position]);    
+	waitNeigh[savage->position]=1;
         eat(savage);
     }
 }
@@ -134,16 +153,20 @@ void * savageLife (void * v) {
  * savage {struct Savage *} pointer to the savage
  * finalX {int} final X coordinate after walking
  * finalY {int} final Y coordinate after walking
+ * veryHungry {int} : 0 pra caminhar devagar, 1 señao (o savage vai mais rapido uma vez que ele tem comida
+ *                    pois ele tá com muita fome
  */
-void walk (struct Savage * savage, int finalX, int finalY) {
+void walk (struct Savage * savage, int finalX, int finalY, int veryHungry) {
     int xIncrement = savage->x < finalX ? 1 : -1;
     int yIncrement = savage->y < finalY ? 1 : -1;
-
+    int espera=200000;
+	if(veryHungry)
+		espera=100000;
     savage->status = WALKING;
     while (!(savage->x == finalX && savage->y == finalY)) {
         if (!(savage->x == finalX)) savage->x += xIncrement;
         if (!(savage->y == finalY)) savage->y += yIncrement;
-        usleep(150000);
+        usleep(espera);
     }
 }
 
@@ -153,6 +176,20 @@ void walk (struct Savage * savage, int finalX, int finalY) {
  * savage {struct Savage *} pointer to the savage
  */
 void eat (struct Savage * savage) {
+int position = savage->position;
+	if(position==numTotSavages-1){
+		//sem_wait(&semaphores[position+1]);
+		while(!waitNeigh[position-1])
+			savage->status = WAITINGNEIGHBOR;} 
+else{
+	if(position==0)	{
+		//sem_wait(&semaphores[position-1]);
+		while(!waitNeigh[position+1])
+			savage->status = WAITINGNEIGHBOR;}
+	else{
+	while(!waitNeigh[position+1] || !waitNeigh[position-1])
+		savage->status = WAITINGNEIGHBOR;
+}}
     savage->status = EATING;
     usleep(5000000 + 1000000 * (rand() % 10));
 	
